@@ -8,10 +8,14 @@
     "default_popup": "ui/popup.html"
   },
   "permissions": [
-    "scripting"
+    "scripting",
+    "webRequest",
+    "declarativeNetRequest",
+    "webNavigation"
   ],
   "host_permissions": [
-    "https://grok.com/*"
+    "*://*.grok.com/*",
+    "wss://*.grok.com/*"
   ],
   "background": {
     "service_worker": "src/background.js",
@@ -20,12 +24,13 @@
   "content_scripts": [
     {
       "matches": [
-        "https://grok.com/*"
+        "https://grok.com/imagine*"
       ],
       "js": [
         "src/content/index.js"
       ],
       "run_at": "document_start"
     }
-  ]
+  ],
+  "web_accessible_resources": []
 }
