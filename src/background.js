@@ -101,12 +101,7 @@ chrome.runtime.onInstalled.addListener(() => {
 });
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-  if (message?.type === "GROK_TIMING_EVENT") {
-    console.log("Timing event", message.payload);
-    sendResponse({ status: "received" });
-  }
-
-  if (message?.type === "IMAGINE_POST_STATE") {
+if (message?.type === "IMAGINE_POST_STATE") {
     const shouldBlock = Boolean(message.payload?.isPostPage);
     const sourceUrl = message.payload?.url ?? sender?.url ?? sender?.tab?.url;
     resolveTabId(sender, sourceUrl)

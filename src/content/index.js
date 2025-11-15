@@ -65,52 +65,7 @@ window.addEventListener("message", (event) => {
 
 ensureBridgeInjected();
 
-class TimingInterceptor {
-  constructor() {
-    this.originalSetTimeout = window.setTimeout;
-    this.originalSetInterval = window.setInterval;
-    this.pendingTimers = new Map();
-  }
 
-  enable() {
-    window.setTimeout = (callback, delay = 0, ...rest) => {
-      const scheduledAt = performance.now();
-      const timerId = this.originalSetTimeout(() => {
-        this.report("timeout", delay, scheduledAt);
-        callback(...rest);
-        this.pendingTimers.delete(timerId);
-      }, delay);
-      this.pendingTimers.set(timerId, { delay, scheduledAt });
-      return timerId;
-    };
-
-    window.setInterval = (callback, delay = 0, ...rest) => {
-      const scheduledAt = performance.now();
-      const timerId = this.originalSetInterval(() => {
-        this.report("interval", delay, scheduledAt);
-        callback(...rest);
-      }, delay);
-      this.pendingTimers.set(timerId, { delay, scheduledAt, recurring: true });
-      return timerId;
-    };
-  }
-
-  report(kind, delay, scheduledAt) {
-    console.debug(`[Grok Imagine] ${kind} scheduled for ${delay}ms`);
-    sendRuntimeMessage({
-      type: "GROK_TIMING_EVENT",
-      payload: {
-        kind,
-        delay,
-        scheduledAt,
-        firedAt: performance.now()
-      }
-    });
-  }
-}
-
-const timingInterceptor = new TimingInterceptor();
-timingInterceptor.enable();
 const syncPostPageBlockingState = (isPostPageActive, url, path) => {
   if (lastReportedPostState === isPostPageActive) {
     return;
@@ -136,7 +91,7 @@ const reportPageVisit = () => {
   const postPageActive = imagineActive && isImaginePostPage();
   if (!imagineActive) {
     removeMasonryStyling();
-    
+
     syncPostPageBlockingState(false, url, path);
     return;
   }
@@ -148,22 +103,13 @@ const reportPageVisit = () => {
   lastReportedPath = path;
   console.log("[Grok Imagine] Page visit:", url);
   if (postPageActive) {
-    
+
     scheduleMasonryStylingForPath(path);
   } else {
     removeMasonryStyling();
 
   }
-  sendRuntimeMessage({
-    type: "GROK_TIMING_EVENT",
-    payload: {
-      kind: "page-visit",
-      url,
-      path,
-      timestamp: performance.now(),
-      meta: path
-    }
-  });
+  
 };
 
 const hookListeners = () => {
@@ -176,15 +122,6 @@ const hookListeners = () => {
       node.addEventListener(
         "click",
         (event) => {
-          sendRuntimeMessage({
-            type: "GROK_TIMING_EVENT",
-            payload: {
-              kind: "element-click",
-              selector,
-              timestamp: performance.now(),
-              meta: node.innerText?.slice(0, 60)
-            }
-          });
           console.debug("Intervened click", selector, event);
         },
         true
@@ -301,7 +238,7 @@ const startNavigationWatcher = () => {
       lastIntervalUrl = window.location.href;
       reportPageVisit();
     }
-  }, 1000);
+  }, 100);
 };
 
 startNavigationWatcher();
