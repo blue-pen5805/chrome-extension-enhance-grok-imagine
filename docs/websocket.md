@@ -2,7 +2,7 @@
 
 ### Logging
 - `src/background.js` listens for `chrome.webRequest.onBeforeRequest` events targeting Grok domains.
-- Every handshake emits a `websocket-open` event recorded in `recentEvents` and surfaced to the popup log view.
+- Every handshake emits a `websocket-open` event that is logged directly to the background console for debugging.
 - `src/background.js` injects `src/content/injected-websocket.js` into the page (`world: "MAIN"`) via `chrome.scripting.executeScript`, so Grok\'s own code sees the wrapped `window.WebSocket`. The injected hook reports `GROK_WS_OPEN` / `GROK_WS_SEND` / `GROK_WS_CLOSED` messages with `window.postMessage`, and the content script listens for them to keep the UI in sync.
 
 ### Blocking Policy

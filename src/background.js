@@ -1,7 +1,4 @@
 /* eslint-disable no-console */
-const ACTIVE_TAB_QUERY = { active: true, currentWindow: true };
-const RECENT_EVENT_LIMIT = 50;
-const recentEvents = [];
 const WEBSOCKET_URL_PATTERNS = [
   "*://*.grok.com/*",
   "wss://*.grok.com/*"
@@ -99,16 +96,6 @@ const initializeBlockingState = () => {
 
 initializeBlockingState();
 
-const recordEvent = (payload = {}) => {
-  recentEvents.unshift({
-    receivedAt: Date.now(),
-    ...payload
-  });
-  if (recentEvents.length > RECENT_EVENT_LIMIT) {
-    recentEvents.length = RECENT_EVENT_LIMIT;
-  }
-};
-
 chrome.runtime.onInstalled.addListener(() => {
   console.log("Grok Interaction Template installed");
 });
@@ -116,28 +103,7 @@ chrome.runtime.onInstalled.addListener(() => {
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   if (message?.type === "GROK_TIMING_EVENT") {
     console.log("Timing event", message.payload);
-    recordEvent(message.payload);
     sendResponse({ status: "received" });
-  }
-
-  if (message?.type === "REQUEST_CONTENT_SCAN") {
-    chrome.tabs.query(ACTIVE_TAB_QUERY, (tabs) => {
-      const tabId = tabs[0]?.id;
-      if (tabId) {
-        chrome.tabs.sendMessage(tabId, { type: "TRIGGER_CONTENT_SCAN" });
-      }
-    });
-    sendResponse({ status: "dispatched" });
-  }
-
-  if (message?.type === "GET_RECENT_EVENTS") {
-    sendResponse({ status: "ok", events: recentEvents });
-  }
-
-  if (message?.type === "CLEAR_EVENT_LOG") {
-    recentEvents.length = 0;
-    sendResponse({ status: "cleared" });
-    return true;
   }
 
   if (message?.type === "IMAGINE_POST_STATE") {
@@ -221,7 +187,6 @@ const updateTabWebSocketBlocking = async (tabId, shouldBlock, url) => {
     url,
     tabId
   };
-  recordEvent(payload);
   if (tabId >= 0) {
     chrome.tabs.sendMessage(tabId, { type: "WEBSOCKET_EVENT", payload }, () => {
       if (chrome.runtime.lastError) {
@@ -237,7 +202,6 @@ const notifyWebSocketEvent = (detail) => {
     url: detail.url,
     requestId: detail.requestId
   };
-  recordEvent(payload);
   console.log("WebSocket handshake detected", detail.url);
   if (typeof detail.tabId === "number" && detail.tabId >= 0) {
     chrome.tabs.sendMessage(
