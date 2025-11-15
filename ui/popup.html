@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Grok Interaction Template</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 16px;
+        width: 360px;
+      }
+      button {
+        width: 100%;
+        padding: 8px;
+        margin-top: 12px;
+      }
+      #log {
+        margin-top: 12px;
+        padding-left: 20px;
+        max-height: 260px;
+        overflow-y: auto;
+      }
+      #log li {
+        font-size: 12px;
+        margin-bottom: 6px;
+        word-break: break-word;
+      }
+      .timestamp {
+        color: #666;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Grok Template</h1>
+    <p>This template monitors Grok.com events and timers.</p>
+    <button id="scan">Rescan DOM</button>
+    <button id="refresh">Refresh log</button>
+    <button id="clear">Clear log</button>
+    <pre id="status">Idle</pre>
+    <ul id="log"></ul>
+    <script type="module">
+      const status = document.querySelector("#status");
+      const scanButton = document.querySelector("#scan");
+      const refreshButton = document.querySelector("#refresh");
+      const clearButton = document.querySelector("#clear");
+      const logList = document.querySelector("#log");
+
+      const formatEvent = (event) => {
+        const time = new Date(event.receivedAt).toLocaleTimeString();
+        const summary = event.kind === "element-click"
+          ? `${event.kind} (${event.selector ?? "unknown"})`
+          : `${event.kind} (${event.delay ?? 0}ms)`;
+        const meta = event.meta ? ` - ${event.meta}` : "";
+        return { time, summary: summary + meta };
+      };
+
+      const renderEvents = (events = []) => {
+        logList.innerHTML = "";
+        events.forEach((event) => {
+          const { time, summary } = formatEvent(event);
+          const li = document.createElement("li");
+          li.innerHTML = `<span class="timestamp">[${time}]</span> ${summary}`;
+          logList.appendChild(li);
+        });
+      };
+
+      const refreshLog = async () => {
+        status.textContent = "Fetching recent events...";
+        const response = await chrome.runtime.sendMessage({ type: "GET_RECENT_EVENTS" });
+        renderEvents(response.events ?? []);
+        status.textContent = "Idle";
+      };
+
+      const requestScan = async () => {
+        status.textContent = "Dispatching scan...";
+        const response = await chrome.runtime.sendMessage({ type: "REQUEST_CONTENT_SCAN" });
+        status.textContent = JSON.stringify(response, null, 2);
+        await refreshLog();
+      };
+
+      const clearLog = async () => {
+        status.textContent = "Clearing log...";
+        await chrome.runtime.sendMessage({ type: "CLEAR_EVENT_LOG" });
+        await refreshLog();
+      };
+
+      scanButton.addEventListener("click", requestScan);
+      refreshButton.addEventListener("click", refreshLog);
+      clearButton.addEventListener("click", clearLog);
+
+      refreshLog();
+    </script>
+  </body>
+</html>
