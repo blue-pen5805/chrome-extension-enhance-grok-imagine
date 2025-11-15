@@ -1,95 +1,111 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ja">
   <head>
     <meta charset="UTF-8" />
-    <title>Grok Interaction Template</title>
+    <title>Grok Imagine Enhancer</title>
     <style>
+      :root {
+        color-scheme: dark;
+        font-family: "Inter", "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      }
       body {
-        font-family: Arial, sans-serif;
         margin: 0;
-        padding: 16px;
         width: 360px;
+        background: #050816;
+        color: #d8e0ff;
       }
-      button {
-        width: 100%;
-        padding: 8px;
-        margin-top: 12px;
+      .shell {
+        padding: 24px 20px;
+        display: flex;
+        flex-direction: column;
+        gap: 20px;
       }
-      #log {
-        margin-top: 12px;
-        padding-left: 20px;
-        max-height: 260px;
-        overflow-y: auto;
+      .row {
+        display: flex;
+        align-items: center;
+        gap: 12px;
       }
-      #log li {
-        font-size: 12px;
-        margin-bottom: 6px;
-        word-break: break-word;
+      .badge {
+        width: 42px;
+        height: 42px;
+        border-radius: 16px;
+        background: linear-gradient(135deg, #6d5dfc, #2fd6ff);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-weight: 600;
+        color: #fff;
       }
-      .timestamp {
-        color: #666;
+      .tagline {
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.3em;
+        color: #7a8bb8;
+        margin: 0 0 2px 0;
+      }
+      h1 {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 600;
+      }
+      section.card {
+        border-radius: 18px;
+        background: rgba(12, 23, 55, 0.9);
+        border: 1px solid rgba(103, 129, 199, 0.25);
+        padding: 16px;
+        box-shadow: 0 15px 30px rgba(5, 8, 22, 0.35);
+      }
+      p {
+        margin: 0;
+        font-size: 13px;
+        color: #b7c4e6;
+        line-height: 1.5;
+      }
+      .status-label {
+        font-size: 10px;
+        text-transform: uppercase;
+        letter-spacing: 0.25em;
+        color: #7a8bb8;
+      }
+      #status {
+        font-size: 15px;
+        font-weight: 600;
+        color: #45f0ff;
+      }
+      .status-row {
+        display: flex;
+        justify-content: space-between;
+        align-items: baseline;
       }
     </style>
   </head>
   <body>
-    <h1>Grok Template</h1>
-    <p>This template monitors Grok.com events and timers.</p>
-    <button id="scan">Rescan DOM</button>
-    <button id="refresh">Refresh log</button>
-    <button id="clear">Clear log</button>
-    <pre id="status">Idle</pre>
-    <ul id="log"></ul>
-    <script type="module">
-      const status = document.querySelector("#status");
-      const scanButton = document.querySelector("#scan");
-      const refreshButton = document.querySelector("#refresh");
-      const clearButton = document.querySelector("#clear");
-      const logList = document.querySelector("#log");
+    <div class="shell">
+      <header class="row">
+        <div class="badge">GI</div>
+        <div>
+          <p class="tagline">Grok Imagine Enhancer</p>
+          <h1>Auto Generation Guard</h1>
+        </div>
+      </header>
 
-      const formatEvent = (event) => {
-        const time = new Date(event.receivedAt).toLocaleTimeString();
-        const summary = event.kind === "element-click"
-          ? `${event.kind} (${event.selector ?? "unknown"})`
-          : `${event.kind} (${event.delay ?? 0}ms)`;
-        const meta = event.meta ? ` - ${event.meta}` : "";
-        return { time, summary: summary + meta };
-      };
+      <section class="card">
+        <p>
+          ポストページでは WebSocket を遮断し、自動画像生成をブロックします。制御の詳細は `chrome://extensions` で Service Worker コンソールを開き、ログをご確認ください。
+        </p>
+      </section>
 
-      const renderEvents = (events = []) => {
-        logList.innerHTML = "";
-        events.forEach((event) => {
-          const { time, summary } = formatEvent(event);
-          const li = document.createElement("li");
-          li.innerHTML = `<span class="timestamp">[${time}]</span> ${summary}`;
-          logList.appendChild(li);
-        });
-      };
+      <section class="card">
+        <div class="status-row">
+          <span class="status-label">STATUS</span>
+          <span id="status">Idle</span>
+        </div>
+        <p style="margin-top: 10px;">
+          このポップアップから操作する必要はありません。ページ遷移に合わせて強制切断が自動的に適用されます。
+        </p>
+      </section>
+    </div>
 
-      const refreshLog = async () => {
-        status.textContent = "Fetching recent events...";
-        const response = await chrome.runtime.sendMessage({ type: "GET_RECENT_EVENTS" });
-        renderEvents(response.events ?? []);
-        status.textContent = "Idle";
-      };
-
-      const requestScan = async () => {
-        status.textContent = "Dispatching scan...";
-        const response = await chrome.runtime.sendMessage({ type: "REQUEST_CONTENT_SCAN" });
-        status.textContent = JSON.stringify(response, null, 2);
-        await refreshLog();
-      };
-
-      const clearLog = async () => {
-        status.textContent = "Clearing log...";
-        await chrome.runtime.sendMessage({ type: "CLEAR_EVENT_LOG" });
-        await refreshLog();
-      };
-
-      scanButton.addEventListener("click", requestScan);
-      refreshButton.addEventListener("click", refreshLog);
-      clearButton.addEventListener("click", clearLog);
-
-      refreshLog();
-    </script>
+    <script type="module" src="popup.js"></script>
   </body>
 </html>

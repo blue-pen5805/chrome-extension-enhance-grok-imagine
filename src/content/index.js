@@ -9,96 +9,15 @@ const observerConfig = { childList: true, subtree: true };
 const imaginePathPattern = /^\/imagine(?:\/post\/[\w-]+)?/i;
 const imaginePostPattern = /^\/imagine\/post\//i;
 const NAVIGATION_EVENT = "grok-imagine-url-change";
-let loggerContainer = null;
 let lastReportedPath = null;
 let navigationWatcherStarted = false;
 let styledPath = null;
+let lastReportedPostState = null;
 
 const isImaginePage = () => imaginePathPattern.test(window.location.pathname);
 const isImaginePostPage = () => imaginePostPattern.test(window.location.pathname);
 const masonrySelector = "[id^='imagine-masonry-section-'] > *:first-child";
-
-const ensureLogger = () => {
-  if (loggerContainer || !isImaginePage()) {
-    return loggerContainer;
-  }
-  loggerContainer = document.createElement("div");
-  loggerContainer.id = "grok-imagine-log";
-  loggerContainer.dataset.collapsed = "true";
-  Object.assign(loggerContainer.style, {
-    position: "fixed",
-    bottom: "16px",
-    right: "16px",
-    width: "320px",
-    maxHeight: "180px",
-    overflowY: "auto",
-    background: "rgba(0, 0, 0, 0.7)",
-    color: "#fff",
-    fontSize: "12px",
-    lineHeight: "1.4",
-    padding: "12px",
-    borderRadius: "8px",
-    zIndex: "2147483647",
-    boxShadow: "0 6px 12px rgba(0, 0, 0, 0.4)",
-    cursor: "pointer",
-    transition: "opacity 0.2s ease"
-  });
-  const heading = document.createElement("div");
-  heading.textContent = "Grok Imagine Logger";
-  heading.style.fontWeight = "bold";
-  heading.style.marginBottom = "8px";
-  heading.style.userSelect = "none";
-  loggerContainer.appendChild(heading);
-  const list = document.createElement("ul");
-  list.style.listStyle = "none";
-  list.style.padding = "0";
-  list.style.margin = "0";
-  loggerContainer.appendChild(list);
-
-  loggerContainer.addEventListener("click", (event) => {
-    if (!loggerContainer) {
-      return;
-    }
-    event.stopPropagation();
-    const collapsed = loggerContainer.dataset.collapsed === "true";
-    if (collapsed) {
-      expandLogger();
-    } else {
-      collapseLogger();
-    }
-  });
-
-  document.addEventListener("keydown", (event) => {
-    if (event.key === "Escape" && loggerContainer) {
-      loggerContainer.remove();
-      loggerContainer = null;
-    }
-  });
-  document.body.appendChild(loggerContainer);
-  collapseLogger();
-  return loggerContainer;
-};
-
-const collapseLogger = () => {
-  if (!loggerContainer) {
-    return;
-  }
-  loggerContainer.dataset.collapsed = "true";
-  loggerContainer.style.maxHeight = "32px";
-  loggerContainer.style.overflow = "hidden";
-  loggerContainer.style.opacity = "0.6";
-};
-
-const expandLogger = () => {
-  if (!loggerContainer) {
-    return;
-  }
-  loggerContainer.dataset.collapsed = "false";
-  loggerContainer.style.maxHeight = "180px";
-  loggerContainer.style.overflowY = "auto";
-  loggerContainer.style.opacity = "1";
-};
-
+const masonryHiddenSelector = "#imagine-masonry-section-0 > *:nth-child(2)";
 const canSendRuntimeMessage = () => Boolean(chrome?.runtime?.id);
 
 const sendRuntimeMessage = (message) => {
@@ -106,24 +25,45 @@ const sendRuntimeMessage = (message) => {
     return;
   }
   try {
-    chrome.runtime.sendMessage(message);
+    chrome.runtime.sendMessage(message, () => {
+      if (chrome.runtime.lastError) {
+        console.debug("Runtime message ignored", chrome.runtime.lastError.message);
+      }
+    });
   } catch (error) {
     console.warn("Failed to send runtime message", error);
   }
 };
 
-const appendLogEntry = (message) => {
-  if (!ensureLogger()) {
+let bridgeInjectionRequested = false;
+
+const ensureBridgeInjected = () => {
+  if (bridgeInjectionRequested || !canSendRuntimeMessage()) {
     return;
   }
-  const list = loggerContainer.querySelector("ul");
-  const li = document.createElement("li");
-  li.textContent = `[${new Date().toLocaleTimeString()}] ${message}`;
-  list.prepend(li);
-  while (list.childNodes.length > 6) {
-    list.lastChild.remove();
-  }
+  bridgeInjectionRequested = true;
+  sendRuntimeMessage({ type: "INJECT_WS_BRIDGE" });
 };
+
+const requestPageSocketClose = (reason = "Grok Imagine Enhancer: post page restriction") => {
+  window.postMessage(
+    {
+      source: "grok-content-script",
+      type: "GROK_WS_FORCE_CLOSE",
+      reason
+    },
+    "*"
+  );
+};
+
+window.addEventListener("message", (event) => {
+  if (event.source !== window || !event.data || event.data.source !== "grok-websocket-hook") {
+    return;
+  }
+  console.debug("[Grok Imagine] WS event from page:", event.data);
+});
+
+ensureBridgeInjected();
 
 class TimingInterceptor {
   constructor() {
@@ -156,7 +96,7 @@ class TimingInterceptor {
   }
 
   report(kind, delay, scheduledAt) {
-    appendLogEntry(`${kind} scheduled for ${delay}ms`);
+    console.debug(`[Grok Imagine] ${kind} scheduled for ${delay}ms`);
     sendRuntimeMessage({
       type: "GROK_TIMING_EVENT",
       payload: {
@@ -171,20 +111,46 @@ class TimingInterceptor {
 
 const timingInterceptor = new TimingInterceptor();
 timingInterceptor.enable();
+const syncPostPageBlockingState = (isPostPageActive, url, path) => {
+  if (lastReportedPostState === isPostPageActive) {
+    return;
+  }
+  lastReportedPostState = isPostPageActive;
+  if (isPostPageActive) {
+    requestPageSocketClose();
+  }
+  sendRuntimeMessage({
+    type: "IMAGINE_POST_STATE",
+    payload: {
+      isPostPage: isPostPageActive,
+      url,
+      path
+    }
+  });
+};
 
 const reportPageVisit = () => {
   const url = window.location.href;
   const path = window.location.pathname + window.location.search;
-  if (!isImaginePage()) {
+  const imagineActive = isImaginePage();
+  const postPageActive = imagineActive && isImaginePostPage();
+  if (!imagineActive) {
+    removeMasonryStyling();
+    syncPostPageBlockingState(false, url, path);
     return;
   }
+
+  syncPostPageBlockingState(postPageActive, url, path);
   if (path === lastReportedPath) {
     return;
   }
   lastReportedPath = path;
-  appendLogEntry(`Visited ${path}`);
   console.log("[Grok Imagine] Page visit:", url);
-  scheduleMasonryStylingForPath(path);
+  if (postPageActive) {
+    scheduleMasonryStylingForPath(path);
+  } else {
+    removeMasonryStyling();
+  }
   sendRuntimeMessage({
     type: "GROK_TIMING_EVENT",
     payload: {
@@ -216,7 +182,6 @@ const hookListeners = () => {
               meta: node.innerText?.slice(0, 60)
             }
           });
-          appendLogEntry(`Clicked ${selector}`);
           console.debug("Intervened click", selector, event);
         },
         true
@@ -240,9 +205,21 @@ const applyMasonryStyling = () => {
       border-radius: 1rem !important;
       text-wrap: auto !important;
     }
+    ${masonryHiddenSelector} {
+      display: none !important;
+      visibility: hidden !important;
+    }
   `;
   document.head.appendChild(style);
   return true;
+};
+
+const removeMasonryStyling = () => {
+  const style = document.getElementById("grok-imagine-masonry-style");
+  if (style) {
+    style.remove();
+  }
+  styledPath = null;
 };
 
 const scheduleMasonryStylingForPath = (path) => {
@@ -272,7 +249,10 @@ const handleWebSocketNotification = (payload = {}) => {
   if (!payload?.url) {
     return;
   }
-  appendLogEntry(`WebSocket ${payload.kind?.replace("websocket-", "") ?? "open"}: ${payload.url}`);
+  console.debug("[Grok Imagine] WebSocket event:", payload.kind, payload.url);
+  if (payload.kind === "websocket-block-enabled") {
+    requestPageSocketClose("Grok Imagine Enhancer: declarative block");
+  }
 };
 
 

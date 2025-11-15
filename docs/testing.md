@@ -1,13 +1,13 @@
-## Verification Checklist
+## 検証チェックリスト
 
-1. **Load extension** — Developer Mode → Load unpacked → select repo root.
-2. **Visit `/imagine`** — logger appears collapsed, popup `Refresh log` shows entries after interaction.
-3. **Visit `/imagine/post/{uuid}`** — overlay logs `websocket-block-enabled` and no handshake succeeds.
-4. **Return to `/imagine`** — overlay logs `websocket-block-disabled`; WebSocket opens again.
-5. **Popup buttons** — `Rescan DOM`, `Refresh log`, and `Clear log` respond without console errors.
+1. **拡張を読み込む** — `chrome://extensions` で Developer Mode を ON にし、**Load unpacked** からこのリポジトリを指定します。
+2. **`/imagine` にアクセス** — DevTools Console に `[Grok Imagine] Page visit` が出力され、任意のボタンを操作した後にポップアップの `Refresh log` でイベントが取得できることを確認します。
+3. **`/imagine/post/{uuid}` に遷移** — Console に `websocket-block-enabled` が表示され、Network パネルの WebSocket が即座に閉じることを確認します。
+4. **`/imagine` へ戻る** — Console に `websocket-block-disabled` が表示され、WebSocket が再接続することを確認します。
+5. **ポップアップ操作** — `Rescan DOM` / `Refresh log` / `Clear log` の各ボタンがエラーなく完了し、ステータスメッセージが適切に更新されることを確認します。
 
-## Troubleshooting
+## トラブルシュート
 
-- Logger missing? Ensure URL matches `https://grok.com/imagine*` and content script isn’t CSP-blocked.
-- WebSocket always blocked? Reload the extension to reset declarative rules.
-- Logs stale? Check `chrome://extensions` service-worker console for runtime errors.
+- ログが表示されない場合は URL が `https://grok.com/imagine*` に一致しているか、CSP によりコンテンツスクリプトがブロックされていないかを確認してください。
+- WebSocket が常時ブロックされる場合は拡張をリロードして declarative ルールを再生成してください。
+- `Refresh log` が空のままの場合は `chrome://extensions` → 対象拡張 → Service Worker のコンソールでエラーが出ていないか確認してください。
