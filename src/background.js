@@ -10,6 +10,41 @@ const BLOCK_RULE_OFFSET = 1000;
 const imaginePostPattern = /^\/imagine\/post\//i;
 const blockedTabState = new Map();
 
+const resetSessionRules = () => {
+  chrome.declarativeNetRequest
+    .getSessionRules()
+    .then((rules) => {
+      if (!rules?.length) {
+        return;
+      }
+      return chrome.declarativeNetRequest.updateSessionRules({
+        removeRuleIds: rules.map((rule) => rule.id),
+        addRules: []
+      });
+    })
+    .catch((error) => {
+      console.warn("Failed to reset session rules", error);
+    });
+};
+
+resetSessionRules();
+
+const initializeBlockingState = () => {
+  chrome.tabs.query({ url: ["*://grok.com/*", "*://*.grok.com/*"] }, (tabs = []) => {
+    tabs.forEach((tab) => {
+      if (typeof tab.id !== "number" || tab.id < 0 || !tab.url) {
+        return;
+      }
+      const shouldBlock = shouldBlockUrl(tab.url);
+      updateTabWebSocketBlocking(tab.id, shouldBlock, tab.url).catch((error) => {
+        console.error("Failed to initialize blocking state", error);
+      });
+    });
+  });
+};
+
+initializeBlockingState();
+
 const recordEvent = (payload = {}) => {
   recentEvents.unshift({
     receivedAt: Date.now(),
