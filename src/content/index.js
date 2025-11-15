@@ -17,7 +17,7 @@ let lastReportedPostState = null;
 const isImaginePage = () => imaginePathPattern.test(window.location.pathname);
 const isImaginePostPage = () => imaginePostPattern.test(window.location.pathname);
 const masonrySelector = "[id^='imagine-masonry-section-'] > *:first-child";
-const masonryHiddenSelector = "#imagine-masonry-section-0 > *:nth-child(2)";
+const masonryHiddenSelector = "#imagine-masonry-section-0 > [role='list']";
 const canSendRuntimeMessage = () => Boolean(chrome?.runtime?.id);
 
 const sendRuntimeMessage = (message) => {
@@ -136,6 +136,7 @@ const reportPageVisit = () => {
   const postPageActive = imagineActive && isImaginePostPage();
   if (!imagineActive) {
     removeMasonryStyling();
+    
     syncPostPageBlockingState(false, url, path);
     return;
   }
@@ -147,9 +148,11 @@ const reportPageVisit = () => {
   lastReportedPath = path;
   console.log("[Grok Imagine] Page visit:", url);
   if (postPageActive) {
+    
     scheduleMasonryStylingForPath(path);
   } else {
     removeMasonryStyling();
+
   }
   sendRuntimeMessage({
     type: "GROK_TIMING_EVENT",
