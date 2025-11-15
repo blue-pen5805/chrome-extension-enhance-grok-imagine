@@ -11,6 +11,18 @@ const imaginePostPattern = /^\/imagine\/post\//i;
 const blockedTabState = new Map();
 const injectedTabSet = new Set();
 
+const logSuppressedSendError = (context) => {
+  const message = chrome.runtime.lastError?.message;
+  if (!message) {
+    return;
+  }
+  if (message.includes("Receiving end does not exist")) {
+    console.debug(`[Grok Imagine] Suppressed sendMessage error (${context}): ${message}`);
+    return;
+  }
+  console.warn(`[Grok Imagine] sendMessage error (${context}):`, message);
+};
+
 const injectBridgeForTab = async (tabId) => {
   if (injectedTabSet.has(tabId)) {
     return "already-injected";
@@ -213,7 +225,7 @@ const updateTabWebSocketBlocking = async (tabId, shouldBlock, url) => {
   if (tabId >= 0) {
     chrome.tabs.sendMessage(tabId, { type: "WEBSOCKET_EVENT", payload }, () => {
       if (chrome.runtime.lastError) {
-        // no-op when content script missing
+        logSuppressedSendError("updateTabWebSocketBlocking");
       }
     });
   }
@@ -228,10 +240,18 @@ const notifyWebSocketEvent = (detail) => {
   recordEvent(payload);
   console.log("WebSocket handshake detected", detail.url);
   if (typeof detail.tabId === "number" && detail.tabId >= 0) {
-    chrome.tabs.sendMessage(detail.tabId, {
-      type: "WEBSOCKET_EVENT",
-      payload
-    });
+    chrome.tabs.sendMessage(
+      detail.tabId,
+      {
+        type: "WEBSOCKET_EVENT",
+        payload
+      },
+      () => {
+        if (chrome.runtime.lastError) {
+          logSuppressedSendError("notifyWebSocketEvent");
+        }
+      }
+    );
   }
 };
 
