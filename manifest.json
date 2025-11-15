@@ -1,0 +1,31 @@
+{
+  "manifest_version": 3,
+  "name": "Grok Interaction Template",
+  "version": "0.1.0",
+  "description": "Template Chrome extension to intercept Grok.com DOM elements and event timings.",
+  "action": {
+    "default_title": "Grok Interaction Template",
+    "default_popup": "ui/popup.html"
+  },
+  "permissions": [
+    "scripting"
+  ],
+  "host_permissions": [
+    "https://grok.com/*"
+  ],
+  "background": {
+    "service_worker": "src/background.js",
+    "type": "module"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://grok.com/*"
+      ],
+      "js": [
+        "src/content/index.js"
+      ],
+      "run_at": "document_start"
+    }
+  ]
+}

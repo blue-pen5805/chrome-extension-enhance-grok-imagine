@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Grok Interaction Template</title>
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        margin: 0;
+        padding: 16px;
+        width: 320px;
+      }
+      button {
+        width: 100%;
+        padding: 8px;
+        margin-top: 12px;
+      }
+      pre {
+        white-space: pre-wrap;
+      }
+    </style>
+  </head>
+  <body>
+    <h1>Grok Template</h1>
+    <p>This template monitors Grok.com events and timers.</p>
+    <button id="scan">Rescan DOM</button>
+    <pre id="status">Idle</pre>
+    <script type="module">
+      const status = document.querySelector("#status");
+      const scanButton = document.querySelector("#scan");
+      scanButton.addEventListener("click", async () => {
+        status.textContent = "Dispatching scan...";
+        const response = await chrome.runtime.sendMessage({ type: "REQUEST_CONTENT_SCAN" });
+        status.textContent = JSON.stringify(response, null, 2);
+      });
+    </script>
+  </body>
+</html>
