@@ -230,18 +230,7 @@ const scheduleMasonryStylingForPath = (path) => {
     return;
   }
   styledPath = path;
-  let attempts = 0;
-  const attemptApply = () => {
-    if (!isImaginePostPage()) {
-      return;
-    }
-    const applied = applyMasonryStyling();
-    attempts += 1;
-    if (!applied && attempts < 30) {
-      window.requestAnimationFrame(attemptApply);
-    }
-  };
-  window.requestAnimationFrame(attemptApply);
+  applyMasonryStyling();
 };
 
 const grokObserver = new MutationObserver(() => {
