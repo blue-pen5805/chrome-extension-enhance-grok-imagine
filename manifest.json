@@ -1,10 +1,10 @@
 {
   "manifest_version": 3,
-  "name": "Grok Interaction Template",
+  "name": "Grok Imagine Enhancer",
   "version": "0.1.0",
-  "description": "Template Chrome extension to intercept Grok.com DOM elements and event timings.",
+  "description": "Enhances Grok Imagine by preventing automatic image generation on post-detail pages.",
   "action": {
-    "default_title": "Grok Interaction Template",
+    "default_title": "Grok Imagine Enhancer",
     "default_popup": "ui/popup.html"
   },
   "permissions": [
