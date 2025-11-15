@@ -292,6 +292,16 @@ const startNavigationWatcher = () => {
     }
   };
   window.requestAnimationFrame(pollUrlChange);
+  let lastIntervalUrl = window.location.href;
+  window.setInterval(() => {
+    if (!canSendRuntimeMessage()) {
+      return;
+    }
+    if (window.location.href !== lastIntervalUrl) {
+      lastIntervalUrl = window.location.href;
+      reportPageVisit();
+    }
+  }, 1000);
 };
 
 startNavigationWatcher();
@@ -303,9 +313,6 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 chrome.runtime.onMessage.addListener((message) => {
-  if (message?.type === "TRIGGER_CONTENT_SCAN") {
-    hookListeners();
-  }
   if (message?.type === "WEBSOCKET_EVENT") {
     handleWebSocketNotification(message.payload);
   }
