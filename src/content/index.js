@@ -243,11 +243,19 @@ const startNavigationWatcher = () => {
 
 startNavigationWatcher();
 
-document.addEventListener("DOMContentLoaded", () => {
+const initializeDomObservers = () => {
   reportPageVisit();
   hookListeners();
-  grokObserver.observe(document.body, observerConfig);
-});
+  if (document.body) {
+    grokObserver.observe(document.body, observerConfig);
+  }
+};
+
+if (document.readyState === "loading") {
+  document.addEventListener("DOMContentLoaded", initializeDomObservers);
+} else {
+  initializeDomObservers();
+}
 
 chrome.runtime.onMessage.addListener((message) => {
   if (message?.type === "WEBSOCKET_EVENT") {
