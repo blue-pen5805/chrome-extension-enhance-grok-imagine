@@ -17,7 +17,6 @@ let lastReportedPostState = null;
 const isImaginePage = () => imaginePathPattern.test(window.location.pathname);
 const isImaginePostPage = () => imaginePostPattern.test(window.location.pathname);
 const masonrySelector = "[id^='imagine-masonry-section-'] > *:first-child";
-const masonryHiddenSelector = "#imagine-masonry-section-0 > [role='list']";
 const canSendRuntimeMessage = () => Boolean(chrome?.runtime?.id);
 
 const sendRuntimeMessage = (message) => {
@@ -144,10 +143,6 @@ const applyMasonryStyling = () => {
     ${masonrySelector} {
       border-radius: 1rem !important;
       text-wrap: auto !important;
-    }
-    ${masonryHiddenSelector} {
-      display: none !important;
-      visibility: hidden !important;
     }
   `;
   document.head.appendChild(style);
