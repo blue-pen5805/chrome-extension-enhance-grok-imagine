@@ -109,7 +109,7 @@ const reportPageVisit = () => {
     removeMasonryStyling();
 
   }
-  
+
 };
 
 const hookListeners = () => {
@@ -184,6 +184,50 @@ const scheduleMasonryStylingForPath = (path) => {
 const grokObserver = new MutationObserver(() => {
   hookListeners();
 });
+
+const listItemImageState = new WeakMap();
+
+const highlightInvisibleContainers = () => {
+  if (!isImaginePage()) {
+    return;
+  }
+  const now = performance.now();
+  document.querySelectorAll("[id^='imagine-masonry-section-'] > div[role='list']").forEach((container) => {
+    container.querySelectorAll(":scope > div[role='listitem']").forEach((item) => {
+      const firstChild = item.firstElementChild ?? item.firstChild;
+      if (!firstChild || !(firstChild instanceof HTMLElement)) {
+        listItemImageState.delete(item);
+        return;
+      }
+      firstChild.style.borderRadius = "1rem";
+      const hasInvisibleChild = Boolean(item.querySelector("div.invisible"));
+      const img = item.querySelector("img[src^='data:image/jpeg;base64,']");
+      if (!img?.src) {
+        listItemImageState.delete(item);
+        firstChild.style.border = "";
+        return;
+      }
+      const state = listItemImageState.get(item) ?? { lastSrc: null, lastChange: now };
+      if (img.src !== state.lastSrc) {
+        state.lastSrc = img.src;
+        state.lastChange = now;
+        listItemImageState.set(item, state);
+        firstChild.style.border = "";
+        return;
+      }
+      listItemImageState.set(item, state);
+      if (now - state.lastChange >= 1000 && hasInvisibleChild) {
+        firstChild.style.border = "2px solid red";
+      } else {
+        firstChild.style.border = "";
+      }
+    });
+  });
+};
+
+window.setInterval(() => {
+  highlightInvisibleContainers();
+}, 100);
 
 const handleWebSocketNotification = (payload = {}) => {
   if (!payload?.url) {
