@@ -1,7 +1,7 @@
 ## Enhance Grok Imagine
 
-Grok Imagine（`https://grok.com/imagine*`）専用 Chrome 拡張機能です。
-自己責任でご利用ください。
+Grok Imagine（`https://grok.com/imagine*`）専用 Chrome 拡張機能です。  
+自己責任でご利用ください。  
 アプデするかはわからないのでなんかおかしくなった～ってなったらあきらめて消してください。
 
 ### 主な機能
