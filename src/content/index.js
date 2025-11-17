@@ -48,7 +48,7 @@ const ensureBridgeInjected = () => {
   sendRuntimeMessage({ type: "INJECT_WS_BRIDGE" });
 };
 
-const requestPageSocketClose = (reason = "Grok Imagine Enhancer: post page restriction") => {
+const requestPageSocketClose = (reason = "Enhance Grok Imagine: post page restriction") => {
   window.postMessage(
     {
       source: "grok-content-script",
@@ -497,7 +497,7 @@ const handleWebSocketNotification = (payload = {}) => {
   }
   console.debug("[Grok Imagine] WebSocket event:", payload.kind, payload.url);
   if (payload.kind === "websocket-block-enabled") {
-    requestPageSocketClose("Grok Imagine Enhancer: declarative block");
+    requestPageSocketClose("Enhance Grok Imagine: declarative block");
   }
 };
 

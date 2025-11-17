@@ -1,10 +1,10 @@
 {
   "manifest_version": 3,
-  "name": "Grok Imagine Enhancer",
+  "name": "Enhance Grok Imagine",
   "version": "0.1.0",
   "description": "Enhances Grok Imagine by preventing automatic image generation on post-detail pages.",
   "action": {
-    "default_title": "Grok Imagine Enhancer",
+    "default_title": "Enhance Grok Imagine",
     "default_popup": "ui/popup.html"
   },
   "permissions": [
