@@ -22,6 +22,10 @@ const isImaginePage = () => imaginePathPattern.test(window.location.pathname);
 const isImaginePostPage = () => imaginePostPattern.test(window.location.pathname);
 const masonrySelector = "[id^='imagine-masonry-section-'] > *:first-child";
 const canSendRuntimeMessage = () => Boolean(chrome?.runtime?.id);
+const downloadButtonClass = "grok-imagine-download-button";
+const downloadContainerClass = "grok-imagine-download-container";
+const downloadButtonStyle =
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-100 [&_svg]:shrink-0 select-none rounded-full overflow-hidden h-10 w-10 p-2 bg-black/25 hover:bg-white/10 border border-white/15 border-opacity-10";
 
 const sendRuntimeMessage = (message) => {
   if (!canSendRuntimeMessage()) {
@@ -468,6 +472,60 @@ const grokObserver = new MutationObserver(() => {
 
 const listItemImageState = new WeakMap();
 
+const createDownloadIcon = () => {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+  svg.setAttribute("width", "24");
+  svg.setAttribute("height", "24");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("fill", "currentColor");
+  svg.setAttribute("stroke", "currentColor");
+  svg.setAttribute("stroke-width", "0");
+  svg.setAttribute("stroke-linecap", "round");
+  svg.setAttribute("stroke-linejoin", "round");
+  svg.classList.add("lucide", "lucide-download", "size-4", "text-white");
+  const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  path.setAttribute(
+    "d",
+    "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4m4-4 5 5 5-5m-5 5V3"
+  );
+  svg.appendChild(path);
+  return svg;
+};
+
+const triggerImageDownload = (img) => {
+  const downloadSource = img?.currentSrc || img?.src;
+  if (!downloadSource) {
+    return;
+  }
+  const link = document.createElement("a");
+  link.href = downloadSource;
+  link.download = `grok-imagine-${Date.now()}.jpg`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+};
+
+const attachDownloadButtonToItem = (item, img, card) => {
+  if (!card || card.querySelector(`.${downloadButtonClass}`) || !img) {
+    return;
+  }
+  const container = document.createElement("div");
+  container.className = `absolute bottom-2 left-2 flex flex-row gap-2 ${downloadContainerClass}`;
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = `${downloadButtonStyle} ${downloadButtonClass}`;
+  button.setAttribute("aria-label", "Download image");
+  button.appendChild(createDownloadIcon());
+  button.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    triggerImageDownload(img);
+  });
+  container.appendChild(button);
+  card.appendChild(container);
+};
+
 const highlightInvisibleContainers = () => {
   if (!isImaginePage()) {
     return;
@@ -488,6 +546,7 @@ const highlightInvisibleContainers = () => {
         firstChild.style.border = "";
         return;
       }
+      attachDownloadButtonToItem(item, img, firstChild);
       const state = listItemImageState.get(item) ?? { lastSrc: null, lastChange: now };
       if (img.src !== state.lastSrc) {
         state.lastSrc = img.src;
