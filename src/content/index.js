@@ -24,6 +24,7 @@ const masonrySelector = "[id^='imagine-masonry-section-'] > *:first-child";
 const canSendRuntimeMessage = () => Boolean(chrome?.runtime?.id);
 const downloadButtonClass = "grok-imagine-download-button";
 const downloadContainerClass = "grok-imagine-download-container";
+const defaultDownloadExtension = "jpg";
 const downloadButtonStyle =
   "inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-100 [&_svg]:shrink-0 select-none rounded-full overflow-hidden h-10 w-10 p-2 bg-black/25 hover:bg-white/10 border border-white/15 border-opacity-10";
 
@@ -472,6 +473,27 @@ const grokObserver = new MutationObserver(() => {
 
 const listItemImageState = new WeakMap();
 
+const findLatestDataImage = (root) => root?.querySelector("img[src^='data:image/']");
+
+const resolveDownloadExtension = (source) => {
+  if (typeof source !== "string") {
+    return defaultDownloadExtension;
+  }
+  const dataMatch = source.match(/^data:(image\/[a-z0-9.+-]+);base64,/i);
+  if (dataMatch) {
+    const mime = dataMatch[1];
+    const [, subtype = ""] = mime.split("/");
+    const normalizedSubtype = subtype.toLowerCase().replace(/[^a-z0-9.+-]/g, "");
+    return normalizedSubtype || defaultDownloadExtension;
+  }
+  const pathWithoutQuery = source.split("?")[0] ?? "";
+  const extensionMatch = pathWithoutQuery.match(/\.([a-z0-9]+)$/i);
+  if (extensionMatch) {
+    return extensionMatch[1].toLowerCase();
+  }
+  return defaultDownloadExtension;
+};
+
 const createDownloadIcon = () => {
   const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
   svg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
@@ -501,9 +523,10 @@ const triggerImageDownload = (img) => {
   if (!downloadSource) {
     return;
   }
+  const extension = resolveDownloadExtension(downloadSource);
   const link = document.createElement("a");
   link.href = downloadSource;
-  link.download = `grok-imagine-${Date.now()}.jpg`;
+  link.download = `grok-imagine-${Date.now()}.${extension}`;
   document.body.appendChild(link);
   link.click();
   link.remove();
@@ -530,7 +553,7 @@ const attachDownloadButtonToItem = (item, card) => {
   button.addEventListener("click", (event) => {
     event.preventDefault();
     event.stopPropagation();
-    const latestImg = item.querySelector("img[src^='data:image/jpeg;base64,']");
+    const latestImg = findLatestDataImage(item);
     if (latestImg) {
       triggerImageDownload(latestImg);
     }
@@ -553,7 +576,7 @@ const highlightInvisibleContainers = () => {
       }
       firstChild.style.borderRadius = "1rem";
       const hasInvisibleChild = Boolean(item.querySelector("div.invisible"));
-      const img = item.querySelector("img[src^='data:image/jpeg;base64,']");
+      const img = findLatestDataImage(item);
       if (!img?.src) {
         removeDownloadButtonFromItem(firstChild);
         listItemImageState.delete(item);
