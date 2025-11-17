@@ -506,8 +506,15 @@ const triggerImageDownload = (img) => {
   link.remove();
 };
 
-const attachDownloadButtonToItem = (item, img, card) => {
-  if (!card || card.querySelector(`.${downloadButtonClass}`) || !img) {
+const removeDownloadButtonFromItem = (card) => {
+  const existing = card?.querySelector(`.${downloadContainerClass}`);
+  if (existing) {
+    existing.remove();
+  }
+};
+
+const attachDownloadButtonToItem = (item, card) => {
+  if (!card || card.querySelector(`.${downloadButtonClass}`)) {
     return;
   }
   const container = document.createElement("div");
@@ -520,7 +527,10 @@ const attachDownloadButtonToItem = (item, img, card) => {
   button.addEventListener("click", (event) => {
     event.preventDefault();
     event.stopPropagation();
-    triggerImageDownload(img);
+    const latestImg = item.querySelector("img[src^='data:image/jpeg;base64,']");
+    if (latestImg) {
+      triggerImageDownload(latestImg);
+    }
   });
   container.appendChild(button);
   card.appendChild(container);
@@ -542,11 +552,16 @@ const highlightInvisibleContainers = () => {
       const hasInvisibleChild = Boolean(item.querySelector("div.invisible"));
       const img = item.querySelector("img[src^='data:image/jpeg;base64,']");
       if (!img?.src) {
+        removeDownloadButtonFromItem(firstChild);
         listItemImageState.delete(item);
         firstChild.style.border = "";
         return;
       }
-      attachDownloadButtonToItem(item, img, firstChild);
+      if (hasInvisibleChild) {
+        removeDownloadButtonFromItem(firstChild);
+      } else {
+        attachDownloadButtonToItem(item, firstChild);
+      }
       const state = listItemImageState.get(item) ?? { lastSrc: null, lastChange: now };
       if (img.src !== state.lastSrc) {
         state.lastSrc = img.src;
