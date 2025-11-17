@@ -478,18 +478,21 @@ const createDownloadIcon = () => {
   svg.setAttribute("width", "24");
   svg.setAttribute("height", "24");
   svg.setAttribute("viewBox", "0 0 24 24");
-  svg.setAttribute("fill", "currentColor");
+  svg.setAttribute("fill", "none");
   svg.setAttribute("stroke", "currentColor");
-  svg.setAttribute("stroke-width", "0");
+  svg.setAttribute("stroke-width", "2");
   svg.setAttribute("stroke-linecap", "round");
   svg.setAttribute("stroke-linejoin", "round");
-  svg.classList.add("lucide", "lucide-download", "size-4", "text-white");
-  const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
-  path.setAttribute(
-    "d",
-    "M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4m4-4 5 5 5-5m-5 5V3"
-  );
-  svg.appendChild(path);
+  svg.classList.add("lucide", "lucide-arrow-down-to-line", "size-4", "text-white");
+
+  const arrowPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  arrowPath.setAttribute("d", "M12 5v10m0 0-4-4m4 4 4-4");
+  const baseLine = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  baseLine.setAttribute("d", "M5 19h14");
+
+  svg.appendChild(arrowPath);
+  svg.appendChild(baseLine);
+
   return svg;
 };
 
