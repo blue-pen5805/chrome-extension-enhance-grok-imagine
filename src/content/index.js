@@ -192,7 +192,11 @@ const ensurePromptTextareaResizeObserver = (textarea) => {
   }
   const observer = new ResizeObserver(() => {
     const overlay = textarea.__grokPromptOverlay;
-    if (!overlay || overlay.style.display === "none") {
+    if (
+      !overlay ||
+      overlay.style.display === "none" ||
+      activePromptTextarea !== textarea
+    ) {
       return;
     }
     positionPromptHistoryOverlay(overlay, textarea);
