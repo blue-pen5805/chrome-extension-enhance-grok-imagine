@@ -537,21 +537,18 @@ const dataUrlToUint8Array = (dataUrl) => {
   }
 };
 
-const createExifCommentSegment = (comment) => {
-  if (!comment) {
+const createExifImageDescriptionSegment = (description) => {
+  if (!description) {
     return null;
   }
   const encoder = new TextEncoder();
-  const commentBytes = encoder.encode(comment);
-  const asciiHeader = new Uint8Array([0x41, 0x53, 0x43, 0x49, 0x49, 0x00, 0x00, 0x00]);
-  const totalCommentLength = asciiHeader.length + commentBytes.length;
+  const descriptionBytes = encoder.encode(description);
+  const descriptionLength = descriptionBytes.length + 1;
   const tiffHeaderSize = 8;
   const ifd0EntryCount = 1;
   const ifd0Size = 2 + ifd0EntryCount * 12 + 4;
-  const exifIfdEntryCount = 1;
-  const exifIfdSize = 2 + exifIfdEntryCount * 12 + 4;
-  const commentDataOffset = tiffHeaderSize + ifd0Size + exifIfdSize;
-  const totalTiffSize = commentDataOffset + totalCommentLength;
+  const descriptionDataOffset = tiffHeaderSize + ifd0Size;
+  const totalTiffSize = descriptionDataOffset + descriptionLength;
   const buffer = new ArrayBuffer(totalTiffSize);
   const view = new DataView(buffer);
   let offset = 0;
@@ -564,26 +561,16 @@ const createExifCommentSegment = (comment) => {
 
   view.setUint16(offset, 1, false);
   offset += 2;
-  view.setUint16(offset, 0x8769, false);
-  view.setUint16(offset + 2, 4, false);
-  view.setUint32(offset + 4, 1, false);
-  view.setUint32(offset + 8, tiffHeaderSize + ifd0Size, false);
-  offset += 12;
-  view.setUint32(offset, 0, false);
-  offset += 4;
-
-  view.setUint16(offset, 1, false);
-  offset += 2;
-  view.setUint16(offset, 0x9286, false);
-  view.setUint16(offset + 2, 7, false);
-  view.setUint32(offset + 4, totalCommentLength, false);
-  view.setUint32(offset + 8, commentDataOffset, false);
+  view.setUint16(offset, 0x010e, false);
+  view.setUint16(offset + 2, 2, false);
+  view.setUint32(offset + 4, descriptionLength, false);
+  view.setUint32(offset + 8, descriptionDataOffset, false);
   offset += 12;
   view.setUint32(offset, 0, false);
 
-  const commentBuffer = new Uint8Array(buffer, commentDataOffset, totalCommentLength);
-  commentBuffer.set(asciiHeader, 0);
-  commentBuffer.set(commentBytes, asciiHeader.length);
+  const descriptionBuffer = new Uint8Array(buffer, descriptionDataOffset, descriptionLength);
+  descriptionBuffer.set(descriptionBytes, 0);
+  descriptionBuffer[descriptionLength - 1] = 0x00;
 
   const exifHeader = new Uint8Array([0x45, 0x78, 0x69, 0x66, 0x00, 0x00]);
   const tiffBytes = new Uint8Array(buffer);
@@ -600,11 +587,11 @@ const createExifCommentSegment = (comment) => {
   return segment;
 };
 
-const injectExifCommentIntoJpeg = (bytes, comment) => {
+const injectExifImageDescriptionIntoJpeg = (bytes, description) => {
   if (!bytes || bytes.length < 2 || bytes[0] !== 0xff || bytes[1] !== 0xd8) {
     return null;
   }
-  const segment = createExifCommentSegment(comment);
+  const segment = createExifImageDescriptionSegment(description);
   if (!segment) {
     return null;
   }
@@ -625,7 +612,7 @@ const createJpegBlobWithPrompt = (dataUrl, prompt) => {
   if (!bytes) {
     return null;
   }
-  const updatedBytes = injectExifCommentIntoJpeg(bytes, trimmedPrompt);
+  const updatedBytes = injectExifImageDescriptionIntoJpeg(bytes, trimmedPrompt);
   if (!updatedBytes) {
     return null;
   }
