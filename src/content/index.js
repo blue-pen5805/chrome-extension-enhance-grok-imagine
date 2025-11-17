@@ -213,8 +213,10 @@ const highlightInvisibleContainers = () => {
       listItemImageState.set(item, state);
       if (now - state.lastChange >= 1000 && hasInvisibleChild) {
         firstChild.style.border = "2px solid red";
+        firstChild.style.margin = "-2px";
       } else {
         firstChild.style.border = "";
+        firstChild.style.margin = "";
       }
     });
   });
