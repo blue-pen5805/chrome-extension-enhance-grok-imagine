@@ -503,6 +503,122 @@ const resolveDownloadExtension = (source) => {
   return defaultDownloadExtension;
 };
 
+const findPromptTextForImage = (img) => {
+  if (!img) {
+    return "";
+  }
+  const section = img.closest("[id^='imagine-masonry-section-']");
+  if (!section) {
+    return "";
+  }
+  const firstDivChild = Array.from(section.children).find((child) => child.tagName === "DIV");
+  return firstDivChild?.textContent?.trim() ?? "";
+};
+
+const dataUrlToUint8Array = (dataUrl) => {
+  if (typeof dataUrl !== "string") {
+    return null;
+  }
+  const commaIndex = dataUrl.indexOf(",");
+  if (commaIndex === -1) {
+    return null;
+  }
+  const base64 = dataUrl.slice(commaIndex + 1);
+  try {
+    const binary = atob(base64);
+    const buffer = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i += 1) {
+      buffer[i] = binary.charCodeAt(i);
+    }
+    return buffer;
+  } catch (error) {
+    console.warn("Failed to decode base64 image", error);
+    return null;
+  }
+};
+
+const createExifImageDescriptionSegment = (description) => {
+  if (!description) {
+    return null;
+  }
+  const encoder = new TextEncoder();
+  const descriptionBytes = encoder.encode(description);
+  const descriptionLength = descriptionBytes.length + 1;
+  const tiffHeaderSize = 8;
+  const ifd0EntryCount = 1;
+  const ifd0Size = 2 + ifd0EntryCount * 12 + 4;
+  const descriptionDataOffset = tiffHeaderSize + ifd0Size;
+  const totalTiffSize = descriptionDataOffset + descriptionLength;
+  const buffer = new ArrayBuffer(totalTiffSize);
+  const view = new DataView(buffer);
+  let offset = 0;
+
+  view.setUint8(offset, 0x4d);
+  view.setUint8(offset + 1, 0x4d);
+  view.setUint16(offset + 2, 0x2a, false);
+  view.setUint32(offset + 4, 8, false);
+  offset = tiffHeaderSize;
+
+  view.setUint16(offset, 1, false);
+  offset += 2;
+  view.setUint16(offset, 0x010e, false);
+  view.setUint16(offset + 2, 2, false);
+  view.setUint32(offset + 4, descriptionLength, false);
+  view.setUint32(offset + 8, descriptionDataOffset, false);
+  offset += 12;
+  view.setUint32(offset, 0, false);
+
+  const descriptionBuffer = new Uint8Array(buffer, descriptionDataOffset, descriptionLength);
+  descriptionBuffer.set(descriptionBytes, 0);
+  descriptionBuffer[descriptionLength - 1] = 0x00;
+
+  const exifHeader = new Uint8Array([0x45, 0x78, 0x69, 0x66, 0x00, 0x00]);
+  const tiffBytes = new Uint8Array(buffer);
+  const payload = new Uint8Array(exifHeader.length + tiffBytes.length);
+  payload.set(exifHeader, 0);
+  payload.set(tiffBytes, exifHeader.length);
+  const segmentLength = payload.length + 2;
+  const segment = new Uint8Array(4 + payload.length);
+  segment[0] = 0xff;
+  segment[1] = 0xe1;
+  segment[2] = (segmentLength >> 8) & 0xff;
+  segment[3] = segmentLength & 0xff;
+  segment.set(payload, 4);
+  return segment;
+};
+
+const injectExifImageDescriptionIntoJpeg = (bytes, description) => {
+  if (!bytes || bytes.length < 2 || bytes[0] !== 0xff || bytes[1] !== 0xd8) {
+    return null;
+  }
+  const segment = createExifImageDescriptionSegment(description);
+  if (!segment) {
+    return null;
+  }
+  const insertionIndex = 2;
+  const output = new Uint8Array(bytes.length + segment.length);
+  output.set(bytes.slice(0, insertionIndex), 0);
+  output.set(segment, insertionIndex);
+  output.set(bytes.slice(insertionIndex), insertionIndex + segment.length);
+  return output;
+};
+
+const createJpegBlobWithPrompt = (dataUrl, prompt) => {
+  const trimmedPrompt = prompt?.trim();
+  if (!trimmedPrompt) {
+    return null;
+  }
+  const bytes = dataUrlToUint8Array(dataUrl);
+  if (!bytes) {
+    return null;
+  }
+  const updatedBytes = injectExifImageDescriptionIntoJpeg(bytes, trimmedPrompt);
+  if (!updatedBytes) {
+    return null;
+  }
+  return new Blob([updatedBytes], { type: "image/jpeg" });
+};
+
 const createDownloadIcon = () => {
   const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
   svg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
@@ -532,13 +648,29 @@ const triggerImageDownload = (img) => {
   if (!downloadSource) {
     return;
   }
+  const promptText = findPromptTextForImage(img);
   const extension = resolveDownloadExtension(downloadSource);
   const link = document.createElement("a");
-  link.href = downloadSource;
+  let objectUrl = null;
+  let finalHref = downloadSource;
+  const isJpegDataUrl = /^data:image\/jpeg;base64,/i.test(downloadSource);
+  if (isJpegDataUrl) {
+    const blob = createJpegBlobWithPrompt(downloadSource, promptText);
+    if (blob) {
+      objectUrl = URL.createObjectURL(blob);
+      finalHref = objectUrl;
+    }
+  }
+  link.href = finalHref;
   link.download = `grok-imagine-${Date.now()}.${extension}`;
   document.body.appendChild(link);
   link.click();
   link.remove();
+  if (objectUrl) {
+    window.setTimeout(() => {
+      URL.revokeObjectURL(objectUrl);
+    }, 0);
+  }
 };
 
 const removeDownloadButtonFromItem = (card) => {
