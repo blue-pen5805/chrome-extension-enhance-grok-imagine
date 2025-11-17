@@ -22,6 +22,11 @@ const isImaginePage = () => imaginePathPattern.test(window.location.pathname);
 const isImaginePostPage = () => imaginePostPattern.test(window.location.pathname);
 const masonrySelector = "[id^='imagine-masonry-section-'] > *:first-child";
 const canSendRuntimeMessage = () => Boolean(chrome?.runtime?.id);
+const downloadButtonClass = "grok-imagine-download-button";
+const downloadContainerClass = "grok-imagine-download-container";
+const defaultDownloadExtension = "jpg";
+const downloadButtonStyle =
+  "inline-flex items-center justify-center gap-2 whitespace-nowrap text-sm font-medium leading-[normal] cursor-pointer focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring disabled:opacity-60 disabled:cursor-not-allowed transition-colors duration-100 [&_svg]:shrink-0 select-none rounded-full overflow-hidden h-10 w-10 p-2 bg-black/25 hover:bg-white/10 border border-white/15 border-opacity-10";
 
 const sendRuntimeMessage = (message) => {
   if (!canSendRuntimeMessage()) {
@@ -466,6 +471,95 @@ const grokObserver = new MutationObserver(() => {
 
 const listItemImageState = new WeakMap();
 
+const findLatestDataImage = (root) => root?.querySelector("img[src^='data:image/']");
+
+const resolveDownloadExtension = (source) => {
+  if (typeof source !== "string") {
+    return defaultDownloadExtension;
+  }
+  const dataMatch = source.match(/^data:(image\/[a-z0-9.+-]+);base64,/i);
+  if (dataMatch) {
+    const mime = dataMatch[1];
+    const [, subtype = ""] = mime.split("/");
+    const normalizedSubtype = subtype.toLowerCase().replace(/[^a-z0-9.+-]/g, "");
+    return normalizedSubtype || defaultDownloadExtension;
+  }
+  const pathWithoutQuery = source.split("?")[0] ?? "";
+  const extensionMatch = pathWithoutQuery.match(/\.([a-z0-9]+)$/i);
+  if (extensionMatch) {
+    return extensionMatch[1].toLowerCase();
+  }
+  return defaultDownloadExtension;
+};
+
+const createDownloadIcon = () => {
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("xmlns", "http://www.w3.org/2000/svg");
+  svg.setAttribute("width", "24");
+  svg.setAttribute("height", "24");
+  svg.setAttribute("viewBox", "0 0 24 24");
+  svg.setAttribute("fill", "none");
+  svg.setAttribute("stroke", "currentColor");
+  svg.setAttribute("stroke-width", "2");
+  svg.setAttribute("stroke-linecap", "round");
+  svg.setAttribute("stroke-linejoin", "round");
+  svg.classList.add("lucide", "lucide-arrow-down-to-line", "size-4", "text-white");
+
+  const arrowPath = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  arrowPath.setAttribute("d", "M12 5v10m0 0-4-4m4 4 4-4");
+  const baseLine = document.createElementNS("http://www.w3.org/2000/svg", "path");
+  baseLine.setAttribute("d", "M5 19h14");
+
+  svg.appendChild(arrowPath);
+  svg.appendChild(baseLine);
+
+  return svg;
+};
+
+const triggerImageDownload = (img) => {
+  const downloadSource = img?.currentSrc || img?.src;
+  if (!downloadSource) {
+    return;
+  }
+  const extension = resolveDownloadExtension(downloadSource);
+  const link = document.createElement("a");
+  link.href = downloadSource;
+  link.download = `grok-imagine-${Date.now()}.${extension}`;
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+};
+
+const removeDownloadButtonFromItem = (card) => {
+  const existing = card?.querySelector(`.${downloadContainerClass}`);
+  if (existing) {
+    existing.remove();
+  }
+};
+
+const attachDownloadButtonToItem = (item, card) => {
+  if (!card || card.querySelector(`.${downloadButtonClass}`)) {
+    return;
+  }
+  const container = document.createElement("div");
+  container.className = `absolute bottom-2 left-2 flex flex-row gap-2 ${downloadContainerClass}`;
+  const button = document.createElement("button");
+  button.type = "button";
+  button.className = `${downloadButtonStyle} ${downloadButtonClass}`;
+  button.setAttribute("aria-label", "Download image");
+  button.appendChild(createDownloadIcon());
+  button.addEventListener("click", (event) => {
+    event.preventDefault();
+    event.stopPropagation();
+    const latestImg = findLatestDataImage(item);
+    if (latestImg) {
+      triggerImageDownload(latestImg);
+    }
+  });
+  container.appendChild(button);
+  card.appendChild(container);
+};
+
 const highlightInvisibleContainers = () => {
   if (!isImaginePage()) {
     return;
@@ -480,11 +574,17 @@ const highlightInvisibleContainers = () => {
       }
       firstChild.style.borderRadius = "1rem";
       const hasInvisibleChild = Boolean(item.querySelector("div.invisible"));
-      const img = item.querySelector("img[src^='data:image/jpeg;base64,']");
+      const img = findLatestDataImage(item);
       if (!img?.src) {
+        removeDownloadButtonFromItem(firstChild);
         listItemImageState.delete(item);
         firstChild.style.border = "";
         return;
+      }
+      if (hasInvisibleChild) {
+        removeDownloadButtonFromItem(firstChild);
+      } else {
+        attachDownloadButtonToItem(item, firstChild);
       }
       const state = listItemImageState.get(item) ?? { lastSrc: null, lastChange: now };
       if (img.src !== state.lastSrc) {
