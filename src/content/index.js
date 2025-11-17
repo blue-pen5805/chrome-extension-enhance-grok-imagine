@@ -104,7 +104,6 @@ const reportPageVisit = () => {
     return;
   }
   lastReportedPath = path;
-  console.log("[Grok Imagine] Page visit:", url);
   if (postPageActive) {
 
     scheduleMasonryStylingForPath(path);
@@ -172,7 +171,6 @@ const logPromptValue = (textarea, trigger) => {
     return;
   }
   const value = textarea.value ?? "";
-  console.log(`[Grok Imagine] プロンプト（${trigger}）:`, value);
   appendPromptHistory(value);
 };
 
