@@ -176,12 +176,42 @@ const logPromptValue = (textarea, trigger) => {
   appendPromptHistory(value);
 };
 
+const positionPromptHistoryOverlay = (overlay, textarea) => {
+  const rect = textarea.getBoundingClientRect();
+  const overlayHeight = overlay.offsetHeight || 0;
+  const targetTop = window.scrollY + rect.top - overlayHeight - 8;
+  overlay.style.top = `${Math.max(window.scrollY, targetTop)}px`;
+  overlay.style.left = `${window.scrollX + rect.left}px`;
+  overlay.style.minWidth = `${rect.width}px`;
+  overlay.style.maxWidth = `${Math.max(rect.width, 320)}px`;
+};
+
+const ensurePromptTextareaResizeObserver = (textarea) => {
+  if (textarea.__grokPromptResizeObserver || typeof ResizeObserver === "undefined") {
+    return;
+  }
+  const observer = new ResizeObserver(() => {
+    const overlay = textarea.__grokPromptOverlay;
+    if (
+      !overlay ||
+      overlay.style.display === "none" ||
+      activePromptTextarea !== textarea
+    ) {
+      return;
+    }
+    positionPromptHistoryOverlay(overlay, textarea);
+  });
+  observer.observe(textarea);
+  textarea.__grokPromptResizeObserver = observer;
+};
+
 const ensurePromptHistoryOverlay = (textarea) => {
   if (!document.body) {
     return null;
   }
   if (promptHistoryOverlay && document.body.contains(promptHistoryOverlay)) {
     textarea.__grokPromptOverlay = promptHistoryOverlay;
+    ensurePromptTextareaResizeObserver(textarea);
     return promptHistoryOverlay;
   }
   document.querySelectorAll(`.${PROMPT_HISTORY_OVERLAY_CLASS}`).forEach((node) => {
@@ -211,17 +241,8 @@ const ensurePromptHistoryOverlay = (textarea) => {
   document.body.appendChild(overlay);
   promptHistoryOverlay = overlay;
   textarea.__grokPromptOverlay = overlay;
+  ensurePromptTextareaResizeObserver(textarea);
   return overlay;
-};
-
-const positionPromptHistoryOverlay = (overlay, textarea) => {
-  const rect = textarea.getBoundingClientRect();
-  const overlayHeight = overlay.offsetHeight || 0;
-  const targetTop = window.scrollY + rect.top - overlayHeight - 8;
-  overlay.style.top = `${Math.max(window.scrollY, targetTop)}px`;
-  overlay.style.left = `${window.scrollX + rect.left}px`;
-  overlay.style.minWidth = `${rect.width}px`;
-  overlay.style.maxWidth = `${Math.max(rect.width, 320)}px`;
 };
 
 const applyPromptHistoryEntryToTextarea = (textarea, value) => {
