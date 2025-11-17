@@ -13,7 +13,7 @@
 
 ### Forced Close on Post Pages
 - Because sockets opened before navigation might survive even after a declarative rule starts blocking, the injected hook keeps references to every open instance and exposes a `GROK_WS_FORCE_CLOSE` message channel.
-- The content script posts that message whenever the SPA enters `/imagine/post/{uuid}` or when the background worker reports `websocket-block-enabled`. The injected hook iterates over open sockets and calls `close(4400, "Grok Imagine Enhancer: restriction")`, ensuring no live channel remains on post detail screens.
+- The content script posts that message whenever the SPA enters `/imagine/post/{uuid}` or when the background worker reports `websocket-block-enabled`. The injected hook iterates over open sockets and calls `close(4400, "Enhance Grok Imagine: restriction")`, ensuring no live channel remains on post detail screens.
 
 ### Cleanup
 - When a tab is removed, its rule ID (`BLOCK_RULE_OFFSET + tabId`) is deleted and the injection cache is cleared.

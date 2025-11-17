@@ -80,7 +80,7 @@
     if (event.data.type === "GROK_WS_FORCE_CLOSE") {
       socketMap.forEach(({ socket }) => {
         try {
-          socket.close(4400, event.data.reason || "Grok Imagine Enhancer");
+          socket.close(4400, event.data.reason || "Enhance Grok Imagine");
         } catch (error) {
           postMessage("GROK_WS_ERROR", { reason: error?.message ?? String(error) });
         }
