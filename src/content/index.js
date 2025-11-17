@@ -248,6 +248,16 @@ const ensurePromptHistoryOverlay = (textarea) => {
   return overlay;
 };
 
+const scrollPromptHistoryOverlayToBottom = (overlay) => {
+  if (!overlay) {
+    return;
+  }
+  overlay.scrollTop = overlay.scrollHeight;
+  window.requestAnimationFrame(() => {
+    overlay.scrollTop = overlay.scrollHeight;
+  });
+};
+
 const applyPromptHistoryEntryToTextarea = (textarea, value) => {
   if (!textarea) {
     return;
@@ -312,7 +322,7 @@ const renderPromptHistoryOverlay = (overlay, history, textarea) => {
   if (overlay.lastElementChild) {
     overlay.lastElementChild.style.borderBottom = "none";
   }
-  overlay.scrollTop = overlay.scrollHeight;
+  scrollPromptHistoryOverlayToBottom(overlay);
 };
 
 const showPromptHistoryOverlay = (textarea) => {
@@ -323,6 +333,7 @@ const showPromptHistoryOverlay = (textarea) => {
   readPromptHistory((history) => {
     renderPromptHistoryOverlay(overlay, history, textarea);
     overlay.style.display = "block";
+    scrollPromptHistoryOverlayToBottom(overlay);
     positionPromptHistoryOverlay(overlay, textarea);
     activePromptTextarea = textarea;
   });
@@ -595,7 +606,7 @@ const highlightInvisibleContainers = () => {
         return;
       }
       listItemImageState.set(item, state);
-      if (now - state.lastChange >= 1000 && hasInvisibleChild) {
+      if (now - state.lastChange >= 2000 && hasInvisibleChild) {
         firstChild.style.border = "2px solid red";
         firstChild.style.margin = "-2px";
       } else {
