@@ -172,15 +172,8 @@ const logPromptValue = (textarea, trigger) => {
     return;
   }
   const value = textarea.value ?? "";
-  console.log(`[Grok Imagine] Prompt (${trigger}):`, value);
+  console.log(`[Grok Imagine] プロンプト（${trigger}）:`, value);
   appendPromptHistory(value);
-};
-
-const logPromptHistory = () => {
-  readPromptHistory((history) => {
-    const newestFirst = history.slice().reverse();
-    console.log("[Grok Imagine] Prompt history (newest first):", newestFirst);
-  });
 };
 
 const ensurePromptHistoryOverlay = (textarea) => {
@@ -246,7 +239,7 @@ const renderPromptHistoryOverlay = (overlay, history, textarea) => {
   const orderedEntries = history.map((entry, index) => ({ entry, index }));
   if (!orderedEntries.length) {
     const empty = document.createElement("div");
-    empty.textContent = "No previous prompts";
+    empty.textContent = "過去のプロンプトはありません";
     empty.style.opacity = "0.7";
     overlay.appendChild(empty);
     return;
@@ -269,7 +262,7 @@ const renderPromptHistoryOverlay = (overlay, history, textarea) => {
     deleteButton.style.fontSize = "14px";
     deleteButton.style.lineHeight = "1";
     deleteButton.style.marginTop = "2px";
-    deleteButton.title = "Delete from history";
+    deleteButton.title = "この履歴を削除";
     deleteButton.addEventListener("click", (event) => {
       event.stopPropagation();
       deletePromptHistoryAtIndex(index, () => {
@@ -354,7 +347,6 @@ const attachImaginePromptLoggers = () => {
     }
     textarea.__grokPromptTextareaLogger = true;
     textarea.addEventListener("focus", () => {
-      logPromptHistory();
       showPromptHistoryOverlay(textarea);
     });
     textarea.addEventListener("blur", () => {
@@ -364,7 +356,7 @@ const attachImaginePromptLoggers = () => {
       if (event.key !== "Enter") {
         return;
       }
-      logPromptValue(event.currentTarget, "textarea-enter");
+      logPromptValue(event.currentTarget, "テキストエリアEnter");
     });
   });
 
@@ -378,7 +370,7 @@ const attachImaginePromptLoggers = () => {
       if (!textarea) {
         return;
       }
-      logPromptValue(textarea, "submit-click");
+      logPromptValue(textarea, "送信ボタンクリック");
     });
   });
 };

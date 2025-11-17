@@ -25,7 +25,7 @@
   "content_scripts": [
     {
       "matches": [
-        "https://grok.com/imagine*"
+        "https://grok.com/*"
       ],
       "js": [
         "src/content/index.js"
