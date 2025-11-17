@@ -96,10 +96,6 @@ const initializeBlockingState = () => {
 
 initializeBlockingState();
 
-chrome.runtime.onInstalled.addListener(() => {
-  console.log("Grok Interaction Template installed");
-});
-
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
 if (message?.type === "IMAGINE_POST_STATE") {
     const shouldBlock = Boolean(message.payload?.isPostPage);
@@ -197,7 +193,6 @@ const notifyWebSocketEvent = (detail) => {
     url: detail.url,
     requestId: detail.requestId
   };
-  console.log("WebSocket handshake detected", detail.url);
   if (typeof detail.tabId === "number" && detail.tabId >= 0) {
     chrome.tabs.sendMessage(
       detail.tabId,
