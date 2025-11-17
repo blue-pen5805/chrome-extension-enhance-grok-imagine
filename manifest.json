@@ -9,6 +9,7 @@
   },
   "permissions": [
     "scripting",
+    "storage",
     "webRequest",
     "declarativeNetRequest",
     "webNavigation"
