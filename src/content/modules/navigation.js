@@ -1,7 +1,8 @@
 import {
     IMAGINE_PATH_PATTERN,
     IMAGINE_POST_PATTERN,
-    NAVIGATION_EVENT
+    NAVIGATION_EVENT,
+    MESSAGE_TYPE
 } from "./constants.js";
 import {
     isImaginePage,
@@ -28,7 +29,7 @@ const syncPostPageBlockingState = (isPostPageActive, url, path) => {
         requestPageSocketClose();
     }
     sendRuntimeMessage({
-        type: "IMAGINE_POST_STATE",
+        type: MESSAGE_TYPE.IMAGINE_POST_STATE,
         payload: {
             isPostPage: isPostPageActive,
             url,

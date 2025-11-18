@@ -30,6 +30,8 @@ export const MESSAGE_TYPE = {
   GROK_WS_ERROR: "GROK_WS_ERROR",
   GROK_WS_CLOSED: "GROK_WS_CLOSED",
   WEBSOCKET_BLOCK_ENABLED: "websocket-block-enabled",
+  IMAGINE_POST_STATE: "IMAGINE_POST_STATE",
+  WEBSOCKET_EVENT: "WEBSOCKET_EVENT",
 };
 
 export const LOG_PREFIX = "[Grok Imagine]";

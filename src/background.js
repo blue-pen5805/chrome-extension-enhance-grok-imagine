@@ -1,4 +1,5 @@
 /* eslint-disable no-console */
+import { MESSAGE_TYPE, LOG_PREFIX } from "./content/modules/constants.js";
 const WEBSOCKET_URL_PATTERNS = [
   "*://*.grok.com/*",
   "wss://*.grok.com/*"
@@ -14,10 +15,10 @@ const logSuppressedSendError = (context) => {
     return;
   }
   if (message.includes("Receiving end does not exist")) {
-    console.debug(`[Grok Imagine] Suppressed sendMessage error (${context}): ${message}`);
+    console.debug(`${LOG_PREFIX} Suppressed sendMessage error (${context}): ${message}`);
     return;
   }
-  console.warn(`[Grok Imagine] sendMessage error (${context}):`, message);
+  console.warn(`${LOG_PREFIX} sendMessage error (${context}):`, message);
 };
 
 const injectBridgeForTab = async (tabId) => {
@@ -97,7 +98,7 @@ const initializeBlockingState = () => {
 initializeBlockingState();
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
-if (message?.type === "IMAGINE_POST_STATE") {
+  if (message?.type === MESSAGE_TYPE.IMAGINE_POST_STATE) {
     const shouldBlock = Boolean(message.payload?.isPostPage);
     const sourceUrl = message.payload?.url ?? sender?.url ?? sender?.tab?.url;
     resolveTabId(sender, sourceUrl)
@@ -115,7 +116,7 @@ if (message?.type === "IMAGINE_POST_STATE") {
     return false;
   }
 
-  if (message?.type === "INJECT_WS_BRIDGE") {
+  if (message?.type === MESSAGE_TYPE.INJECT_WS_BRIDGE) {
     const tabId = sender?.tab?.id;
     if (typeof tabId !== "number" || tabId < 0) {
       sendResponse?.({ status: "skipped" });
@@ -155,17 +156,17 @@ const updateTabWebSocketBlocking = async (tabId, shouldBlock, url) => {
   const ruleId = BLOCK_RULE_OFFSET + tabId;
   const addRules = shouldBlock
     ? [
-        {
-          id: ruleId,
-          priority: 1,
-          action: { type: "block" },
-          condition: {
-            tabIds: [tabId],
-            requestDomains: ["grok.com"],
-            resourceTypes: ["websocket"]
-          }
+      {
+        id: ruleId,
+        priority: 1,
+        action: { type: "block" },
+        condition: {
+          tabIds: [tabId],
+          requestDomains: ["grok.com"],
+          resourceTypes: ["websocket"]
         }
-      ]
+      }
+    ]
     : [];
 
   await chrome.declarativeNetRequest.updateSessionRules({
@@ -174,12 +175,12 @@ const updateTabWebSocketBlocking = async (tabId, shouldBlock, url) => {
   });
   blockedTabState.set(tabId, shouldBlock);
   const payload = {
-    kind: shouldBlock ? "websocket-block-enabled" : "websocket-block-disabled",
+    kind: shouldBlock ? MESSAGE_TYPE.WEBSOCKET_BLOCK_ENABLED : "websocket-block-disabled",
     url,
     tabId
   };
   if (tabId >= 0) {
-    chrome.tabs.sendMessage(tabId, { type: "WEBSOCKET_EVENT", payload }, () => {
+    chrome.tabs.sendMessage(tabId, { type: MESSAGE_TYPE.WEBSOCKET_EVENT, payload }, () => {
       if (chrome.runtime.lastError) {
         logSuppressedSendError("updateTabWebSocketBlocking");
       }
@@ -197,7 +198,7 @@ const notifyWebSocketEvent = (detail) => {
     chrome.tabs.sendMessage(
       detail.tabId,
       {
-        type: "WEBSOCKET_EVENT",
+        type: MESSAGE_TYPE.WEBSOCKET_EVENT,
         payload
       },
       () => {
