@@ -1,6 +1,6 @@
 import { initBridgeListener } from "./modules/bridge.js";
 import { startNavigationWatcher, reportPageVisit } from "./modules/navigation.js";
-import { initPromptHistory, hookListeners } from "./modules/prompt-history.js";
+import { initPromptHistory, hookListeners, updatePromptHistorySettings } from "./modules/prompt-history.js";
 import { highlightInvisibleContainers, updateDownloaderSettings } from "./modules/downloader.js";
 import { OBSERVER_CONFIG } from "./modules/constants.js";
 
@@ -37,6 +37,38 @@ chrome.storage.sync.get({
         grokObserver.observe(document.body, OBSERVER_CONFIG);
       });
     }
+  }
+
+  // Initial settings sync for prompt history
+  updatePromptHistorySettings(settings);
+});
+
+// Listen for settings changes
+chrome.storage.onChanged.addListener((changes, area) => {
+  if (area !== "sync") return;
+
+  const newSettings = {};
+  let hasDownloaderUpdates = false;
+  let hasPromptHistoryUpdates = false;
+
+  if (changes.feature_download_button) {
+    newSettings.feature_download_button = changes.feature_download_button.newValue;
+    hasDownloaderUpdates = true;
+  }
+  if (changes.feature_show_blocked_border) {
+    newSettings.feature_show_blocked_border = changes.feature_show_blocked_border.newValue;
+    hasDownloaderUpdates = true;
+  }
+  if (changes.feature_prompt_history) {
+    newSettings.feature_prompt_history = changes.feature_prompt_history.newValue;
+    hasPromptHistoryUpdates = true;
+  }
+
+  if (hasDownloaderUpdates) {
+    updateDownloaderSettings(newSettings);
+  }
+  if (hasPromptHistoryUpdates) {
+    updatePromptHistorySettings(newSettings);
   }
 });
 

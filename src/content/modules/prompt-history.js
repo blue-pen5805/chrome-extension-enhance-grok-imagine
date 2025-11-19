@@ -8,6 +8,16 @@ import { isImaginePage } from "./utils.js";
 
 let activePromptTextarea = null;
 let promptHistoryOverlay = null;
+let isHistoryEnabled = true;
+
+export const updatePromptHistorySettings = (settings) => {
+    if (typeof settings.feature_prompt_history === "boolean") {
+        isHistoryEnabled = settings.feature_prompt_history;
+        if (!isHistoryEnabled && activePromptTextarea) {
+            hidePromptHistoryOverlay(activePromptTextarea);
+        }
+    }
+};
 
 const readPromptHistory = (callback = () => { }) => {
     if (!chrome?.storage?.local) {
@@ -62,7 +72,7 @@ const deletePromptHistoryAtIndex = (index, callback = () => { }) => {
 };
 
 const logPromptValue = (textarea, trigger) => {
-    if (!textarea) {
+    if (!textarea || !isHistoryEnabled) {
         return;
     }
     const value = textarea.value ?? "";
@@ -216,7 +226,7 @@ const renderPromptHistoryOverlay = (overlay, history, textarea) => {
 };
 
 const showPromptHistoryOverlay = (textarea) => {
-    if (!isImaginePage(IMAGINE_PATH_PATTERN) || !document.body) {
+    if (!isHistoryEnabled || !isImaginePage(IMAGINE_PATH_PATTERN) || !document.body) {
         return;
     }
     const overlay = ensurePromptHistoryOverlay(textarea);
