@@ -1,4 +1,6 @@
 (() => {
+  // NOTE: These strings must be kept in sync with src/content/modules/constants.js
+  // Since this script is injected into the page context, we cannot easily import modules.
   if (window.__grokWebSocketHookInstalled) {
     return;
   }

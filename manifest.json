@@ -19,7 +19,7 @@
     "wss://*.grok.com/*"
   ],
   "background": {
-    "service_worker": "src/background.js",
+    "service_worker": "src/background/index.js",
     "type": "module"
   },
   "content_scripts": [
@@ -28,7 +28,7 @@
         "https://grok.com/*"
       ],
       "js": [
-        "src/content/index.js"
+        "src/content/loader.js"
       ],
       "run_at": "document_start"
     }
@@ -36,7 +36,9 @@
   "web_accessible_resources": [
     {
       "resources": [
-        "src/content/injected-websocket.js"
+        "src/content/injected-websocket.js",
+        "src/content/index.js",
+        "src/content/modules/*.js"
       ],
       "matches": [
         "https://grok.com/*"
