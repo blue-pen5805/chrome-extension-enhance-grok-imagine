@@ -10,6 +10,25 @@ initBridgeListener();
 // Initialize Navigation Watcher
 startNavigationWatcher();
 
+// Mutation Observer with debounce
+let debounceTimer = null;
+const handleMutation = () => {
+  if (debounceTimer) clearTimeout(debounceTimer);
+  debounceTimer = setTimeout(() => {
+    hookListeners();
+    highlightInvisibleContainers();
+  }, 50);
+};
+
+const grokObserver = new MutationObserver(handleMutation);
+if (document.body) {
+  grokObserver.observe(document.body, OBSERVER_CONFIG);
+} else {
+  document.addEventListener("DOMContentLoaded", () => {
+    grokObserver.observe(document.body, OBSERVER_CONFIG);
+  });
+}
+
 // Load settings and initialize features
 chrome.storage.sync.get({
   feature_prompt_history: true,
@@ -24,19 +43,6 @@ chrome.storage.sync.get({
 
     // Initial Hook
     hookListeners();
-
-    // Mutation Observer for dynamic content
-    const grokObserver = new MutationObserver(() => {
-      hookListeners();
-    });
-
-    if (document.body) {
-      grokObserver.observe(document.body, OBSERVER_CONFIG);
-    } else {
-      document.addEventListener("DOMContentLoaded", () => {
-        grokObserver.observe(document.body, OBSERVER_CONFIG);
-      });
-    }
   }
 
   // Initial settings sync for prompt history
@@ -72,10 +78,7 @@ chrome.storage.onChanged.addListener((changes, area) => {
   }
 });
 
-// Interval for highlighting invisible containers
-window.setInterval(() => {
-  highlightInvisibleContainers();
-}, 100);
+
 
 // Initial Page Visit Report
 reportPageVisit();

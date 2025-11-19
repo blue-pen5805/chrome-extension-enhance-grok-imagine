@@ -4,7 +4,12 @@ export const TARGET_SELECTORS = [
   "[data-testid='submit']"
 ];
 
-export const OBSERVER_CONFIG = { childList: true, subtree: true };
+export const OBSERVER_CONFIG = {
+  childList: true,
+  subtree: true,
+  attributes: true,
+  attributeFilter: ["class", "src"]
+};
 export const IMAGINE_PATH_PATTERN = /^\/imagine(?:\/post\/[\w-]+)?/i;
 export const IMAGINE_POST_PATTERN = /^\/imagine\/post\//i;
 export const NAVIGATION_EVENT = "grok-imagine-url-change";
