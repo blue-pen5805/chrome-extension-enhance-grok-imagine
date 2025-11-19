@@ -5,6 +5,22 @@ import { MESSAGE_TYPE } from "../../content/modules/constants.js";
 const BLOCK_RULE_OFFSET = 1000;
 const imaginePostPattern = /^\/imagine\/post\//i;
 
+let isBlockingEnabled = true;
+
+export const initBlockingSettings = () => {
+    chrome.storage.sync.get({ feature_disable_similar_generation: true }, (items) => {
+        isBlockingEnabled = items.feature_disable_similar_generation;
+    });
+
+    chrome.storage.onChanged.addListener((changes, area) => {
+        if (area === "sync" && changes.feature_disable_similar_generation) {
+            isBlockingEnabled = changes.feature_disable_similar_generation.newValue;
+            // Re-initialize blocking state to apply new setting immediately
+            initializeBlockingState();
+        }
+    });
+};
+
 export const shouldBlockUrl = (rawUrl) => {
     try {
         const url = new URL(rawUrl);
@@ -19,11 +35,15 @@ export const shouldBlockUrl = (rawUrl) => {
 
 export const updateTabWebSocketBlocking = async (tabId, shouldBlock, url) => {
     const current = blockedTabState.get(tabId) ?? false;
-    if (current === shouldBlock) {
+
+    // If blocking is disabled globally, force shouldBlock to false
+    const effectiveShouldBlock = isBlockingEnabled ? shouldBlock : false;
+
+    if (current === effectiveShouldBlock) {
         return;
     }
     const ruleId = BLOCK_RULE_OFFSET + tabId;
-    const addRules = shouldBlock
+    const addRules = effectiveShouldBlock
         ? [
             {
                 id: ruleId,
@@ -42,9 +62,9 @@ export const updateTabWebSocketBlocking = async (tabId, shouldBlock, url) => {
         removeRuleIds: [ruleId],
         addRules
     });
-    blockedTabState.set(tabId, shouldBlock);
+    blockedTabState.set(tabId, effectiveShouldBlock);
     const payload = {
-        kind: shouldBlock ? MESSAGE_TYPE.WEBSOCKET_BLOCK_ENABLED : "websocket-block-disabled",
+        kind: effectiveShouldBlock ? MESSAGE_TYPE.WEBSOCKET_BLOCK_ENABLED : "websocket-block-disabled",
         url,
         tabId
     };

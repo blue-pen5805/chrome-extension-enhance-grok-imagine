@@ -1,7 +1,7 @@
 import { initBridgeListener } from "./modules/bridge.js";
 import { startNavigationWatcher, reportPageVisit } from "./modules/navigation.js";
 import { initPromptHistory, hookListeners } from "./modules/prompt-history.js";
-import { highlightInvisibleContainers } from "./modules/downloader.js";
+import { highlightInvisibleContainers, updateDownloaderSettings } from "./modules/downloader.js";
 import { OBSERVER_CONFIG } from "./modules/constants.js";
 
 // Initialize Bridge
@@ -10,24 +10,35 @@ initBridgeListener();
 // Initialize Navigation Watcher
 startNavigationWatcher();
 
-// Initialize Prompt History
-initPromptHistory();
+// Load settings and initialize features
+chrome.storage.sync.get({
+  feature_prompt_history: true,
+  feature_download_button: true,
+  feature_show_blocked_border: true
+}, (settings) => {
+  updateDownloaderSettings(settings);
 
-// Initial Hook
-hookListeners();
+  if (settings.feature_prompt_history) {
+    // Initialize Prompt History
+    initPromptHistory();
 
-// Mutation Observer for dynamic content
-const grokObserver = new MutationObserver(() => {
-  hookListeners();
+    // Initial Hook
+    hookListeners();
+
+    // Mutation Observer for dynamic content
+    const grokObserver = new MutationObserver(() => {
+      hookListeners();
+    });
+
+    if (document.body) {
+      grokObserver.observe(document.body, OBSERVER_CONFIG);
+    } else {
+      document.addEventListener("DOMContentLoaded", () => {
+        grokObserver.observe(document.body, OBSERVER_CONFIG);
+      });
+    }
+  }
 });
-
-if (document.body) {
-  grokObserver.observe(document.body, OBSERVER_CONFIG);
-} else {
-  document.addEventListener("DOMContentLoaded", () => {
-    grokObserver.observe(document.body, OBSERVER_CONFIG);
-  });
-}
 
 // Interval for highlighting invisible containers
 window.setInterval(() => {

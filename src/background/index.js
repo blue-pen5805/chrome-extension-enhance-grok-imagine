@@ -1,6 +1,6 @@
 /* eslint-disable no-console */
 import { MESSAGE_TYPE } from "../content/modules/constants.js";
-import { resetSessionRules, initializeBlockingState, updateTabWebSocketBlocking } from "./modules/blocking.js";
+import { resetSessionRules, initializeBlockingState, updateTabWebSocketBlocking, initBlockingSettings } from "./modules/blocking.js";
 import { resolveTabId, handleNavigationUpdate } from "./modules/navigation.js";
 import { injectBridgeForTab } from "./modules/injection.js";
 import { notifyWebSocketEvent } from "./modules/messaging.js";
@@ -13,6 +13,7 @@ const WEBSOCKET_URL_PATTERNS = [
 const BLOCK_RULE_OFFSET = 1000;
 
 resetSessionRules();
+initBlockingSettings();
 initializeBlockingState();
 
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {

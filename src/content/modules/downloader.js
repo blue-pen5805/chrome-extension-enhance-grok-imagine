@@ -9,6 +9,15 @@ import { isImaginePage } from "./utils.js";
 
 const listItemImageState = new WeakMap();
 
+let currentSettings = {
+    feature_download_button: true,
+    feature_show_blocked_border: true
+};
+
+export const updateDownloaderSettings = (settings) => {
+    currentSettings = { ...currentSettings, ...settings };
+};
+
 const findLatestDataImage = (root) => root?.querySelector("img[src^='data:image/']");
 
 const resolveDownloadExtension = (source) => {
@@ -253,8 +262,10 @@ export const highlightInvisibleContainers = () => {
             }
             if (hasInvisibleChild) {
                 removeDownloadButtonFromItem(firstChild);
-            } else {
+            } else if (currentSettings.feature_download_button) {
                 attachDownloadButtonToItem(item, firstChild);
+            } else {
+                removeDownloadButtonFromItem(firstChild);
             }
             const state = listItemImageState.get(item) ?? { lastSrc: null, lastChange: now };
             if (img.src !== state.lastSrc) {
@@ -265,7 +276,7 @@ export const highlightInvisibleContainers = () => {
                 return;
             }
             listItemImageState.set(item, state);
-            if (now - state.lastChange >= 2000 && hasInvisibleChild) {
+            if (now - state.lastChange >= 2000 && hasInvisibleChild && currentSettings.feature_show_blocked_border) {
                 firstChild.style.border = "2px solid red";
                 firstChild.style.margin = "-2px";
             } else {
